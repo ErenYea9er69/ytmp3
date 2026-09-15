@@ -1,6 +1,38 @@
-// YouTube to MP3 Extension - Background Service Worker
-
 const LOCAL_SERVER_URL = 'http://localhost:4000';
+
+// Automatically inject content scripts into open YouTube tabs on install / reload
+function injectIntoExistingTabs() {
+    chrome.tabs.query({ url: "*://*.youtube.com/*" }, (tabs) => {
+        for (const tab of tabs) {
+            if (tab.id) {
+                chrome.scripting.executeScript({
+                    target: { tabId: tab.id },
+                    files: ["content/content.js"]
+                }).catch(() => {});
+                chrome.scripting.insertCSS({
+                    target: { tabId: tab.id },
+                    files: ["content/content.css"]
+                }).catch(() => {});
+            }
+        }
+    });
+}
+
+chrome.runtime.onInstalled.addListener(injectIntoExistingTabs);
+injectIntoExistingTabs();
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    if (changeInfo.status === 'complete' && tab.url && tab.url.includes('youtube.com/watch')) {
+        chrome.scripting.executeScript({
+            target: { tabId },
+            files: ["content/content.js"]
+        }).catch(() => {});
+        chrome.scripting.insertCSS({
+            target: { tabId },
+            files: ["content/content.css"]
+        }).catch(() => {});
+    }
+});
 
 function sanitizeFilename(name) {
     if (!name) return 'youtube-audio';

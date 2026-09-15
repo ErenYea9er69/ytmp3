@@ -1,7 +1,9 @@
-// YouTube to MP3 Extension - Injected Content Script with Live Progress & Reliable Placement
+// YouTube to MP3 Extension - Bulletproof Injected Script with Live Progress
 
 (function () {
     'use strict';
+
+    console.log('[YT to MP3] Script initialized on:', window.location.href);
 
     let currentVideoId = null;
     let isProcessing = false;
@@ -30,6 +32,10 @@
         return urlParams.get('v');
     }
 
+    function isWatchPage() {
+        return window.location.pathname.startsWith('/watch') && !!getVideoId();
+    }
+
     function getVideoTitle() {
         const titleEl = document.querySelector('h1.ytd-watch-metadata yt-formatted-string') ||
             document.querySelector('#title h1 yt-formatted-string') ||
@@ -39,10 +45,6 @@
             return titleEl.innerText || titleEl.getAttribute('content') || document.title.replace(' - YouTube', '').trim();
         }
         return document.title.replace(' - YouTube', '').trim() || 'youtube-audio';
-    }
-
-    function isWatchPage() {
-        return window.location.pathname === '/watch' && !!getVideoId();
     }
 
     function createToast(title, message, type = 'info', hasProgressBar = false) {
@@ -127,7 +129,6 @@
         updateButtonProgress(1, 'Converting 1%');
         createToast(title, `Connecting to local converter...`, 'info', true);
 
-        // Start progress poller
         if (progressPollInterval) clearInterval(progressPollInterval);
 
         progressPollInterval = setInterval(() => {
@@ -149,9 +150,8 @@
                     }
                 }
             });
-        }, 250);
+        }, 200);
 
-        // Trigger download
         chrome.runtime.sendMessage({
             action: 'START_DOWNLOAD',
             data: {
@@ -177,7 +177,7 @@
                 isProcessing = false;
                 updateButtonState('default');
 
-                const toast = createToast('Local Converter Server Offline', 'Run start-server.bat in your ytmp3 folder to enable 1-click downloads with 0 external APIs!', 'warning', false);
+                const toast = createToast('Local Server Offline', 'Run start-server.bat in your ytmp3 folder to enable 1-click downloads with 0 external APIs!', 'warning', false);
                 const extra = document.createElement('div');
                 extra.style.marginTop = '8px';
                 extra.innerHTML = `
@@ -241,7 +241,7 @@
         const videoId = getVideoId();
         const existingBtn = document.getElementById('ytmp3-injected-container');
 
-        // If button is already in document and properly attached, don't duplicate
+        // Check if button is already present and attached in the DOM
         if (existingBtn && document.body.contains(existingBtn) && currentVideoId === videoId) {
             return;
         }
@@ -252,23 +252,23 @@
 
         currentVideoId = videoId;
 
-        // Find best insertion point in YouTube's modern action bar:
-        // Priority 1: Right next to the Like/Dislike segmented pill button!
-        const likeDislikePill = document.querySelector('segmented-like-dislike-button-view-model') ||
-            document.querySelector('#segmented-like-button') ||
-            document.querySelector('ytd-segmented-like-dislike-button-renderer');
-
+        // Locating the target container on modern YouTube:
+        // Priority 1: #top-level-buttons-computed (The action buttons row)
         const topLevelButtons = document.querySelector('#top-level-buttons-computed') ||
-            document.querySelector('ytd-watch-metadata #actions #top-level-buttons-computed') ||
-            document.querySelector('ytd-menu-renderer[class*="ytd-watch-metadata"] #top-level-buttons-computed') ||
+            document.querySelector('ytd-menu-renderer.ytd-watch-metadata #top-level-buttons-computed') ||
             document.querySelector('#actions-inner #top-level-buttons-computed');
 
-        const fallbackActions = document.querySelector('ytd-watch-metadata #actions') ||
-            document.querySelector('#actions #actions-inner') ||
+        // Priority 2: actions-inner or actions
+        const actionsContainer = document.querySelector('ytd-watch-metadata #actions-inner') ||
+            document.querySelector('ytd-watch-metadata #actions') ||
+            document.querySelector('#actions');
+
+        // Priority 3: owner container next to Subscribe button
+        const ownerContainer = document.querySelector('ytd-watch-metadata #owner') ||
             document.querySelector('#owner');
 
-        if (!likeDislikePill && !topLevelButtons && !fallbackActions) {
-            return; // Action bar not yet rendered by YouTube
+        if (!topLevelButtons && !actionsContainer && !ownerContainer) {
+            return; // Not yet rendered by YouTube
         }
 
         const wrapper = document.createElement('div');
@@ -344,35 +344,43 @@
             }
         });
 
-        // Insert immediately after the Like/Dislike button if available, or into topLevelButtons
-        if (likeDislikePill && likeDislikePill.parentNode) {
-            likeDislikePill.insertAdjacentElement('afterend', wrapper);
-        } else if (topLevelButtons) {
-            topLevelButtons.insertBefore(wrapper, topLevelButtons.firstChild);
-        } else if (fallbackActions) {
-            fallbackActions.appendChild(wrapper);
+        // Insertion Strategy:
+        if (topLevelButtons) {
+            // If top-level-buttons has children (Like/Dislike is child 0, Share is child 1),
+            // insert between Like/Dislike and Share!
+            if (topLevelButtons.children.length > 1) {
+                topLevelButtons.insertBefore(wrapper, topLevelButtons.children[1]);
+            } else {
+                topLevelButtons.appendChild(wrapper);
+            }
+            console.log('[YT to MP3] Injected button into #top-level-buttons-computed');
+        } else if (actionsContainer) {
+            actionsContainer.appendChild(wrapper);
+            console.log('[YT to MP3] Injected button into #actions-inner');
+        } else if (ownerContainer) {
+            ownerContainer.appendChild(wrapper);
+            console.log('[YT to MP3] Injected button into #owner');
         }
-
-        console.log('[YT to MP3] Injected button under video:', videoId);
     }
 
-    // High frequency initialization and SPA persistence observer
-    function initObserver() {
+    // High frequency injector ensuring the button is ALWAYS visible
+    function init() {
         injectButton();
 
-        // High frequency check during page load
-        for (let i = 1; i <= 15; i++) {
-            setTimeout(injectButton, i * 400);
+        // High frequency checks during the initial load
+        for (let t of [100, 300, 600, 1000, 1500, 2000, 3000, 4000]) {
+            setTimeout(injectButton, t);
         }
 
+        // Listen to YouTube SPA navigation events
         window.addEventListener('yt-navigate-finish', () => {
-            for (let i = 1; i <= 10; i++) {
-                setTimeout(injectButton, i * 350);
+            for (let t of [100, 300, 600, 1000, 2000]) {
+                setTimeout(injectButton, t);
             }
         });
 
         window.addEventListener('yt-page-data-updated', () => {
-            setTimeout(injectButton, 250);
+            setTimeout(injectButton, 200);
             setTimeout(injectButton, 800);
         });
 
@@ -380,7 +388,7 @@
             setTimeout(injectButton, 300);
         });
 
-        // Observe DOM changes on YouTube watch page
+        // DOM Mutation Observer monitoring for button presence
         const observer = new MutationObserver(() => {
             if (isWatchPage()) {
                 const btn = document.getElementById('ytmp3-injected-container');
@@ -395,7 +403,7 @@
             subtree: true
         });
 
-        // Safety interval ensuring button is ALWAYS present
+        // Continuous interval safeguard
         setInterval(() => {
             if (isWatchPage()) {
                 const btn = document.getElementById('ytmp3-injected-container');
@@ -403,13 +411,13 @@
                     injectButton();
                 }
             }
-        }, 1000);
+        }, 800);
     }
 
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initObserver);
+        document.addEventListener('DOMContentLoaded', init);
     } else {
-        initObserver();
+        init();
     }
 
 })();

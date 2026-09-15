@@ -1,17 +1,17 @@
 {
   "manifest_version": 3,
   "name": "YT to MP3 - One-Click Downloader",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Download YouTube videos directly to MP3 with a single click button on the YouTube video page.",
   "permissions": [
     "activeTab",
     "downloads",
-    "storage"
+    "storage",
+    "scripting"
   ],
   "host_permissions": [
     "*://*.youtube.com/*",
-    "http://localhost:*/*",
-    "https://*/*"
+    "http://localhost:*/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -27,7 +27,7 @@
       "css": [
         "content/content.css"
       ],
-      "run_at": "document_idle"
+      "run_at": "document_start"
     }
   ],
   "action": {
@@ -47,7 +47,8 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "icons/*.png"
+        "icons/*.png",
+        "content/*"
       ],
       "matches": [
         "*://*.youtube.com/*"
