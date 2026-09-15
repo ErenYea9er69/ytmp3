@@ -40,6 +40,10 @@
     },
     "default_title": "YT to MP3 Converter"
   },
+  "options_ui": {
+    "page": "popup/popup.html",
+    "open_in_tab": true
+  },
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
