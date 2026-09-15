@@ -18,21 +18,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let activeTabInfo = null;
 
-    // Check Companion Server / Web Engine Status
+    // Check Companion Server Status
     function checkStatus() {
         statusDot.className = 'status-dot';
         statusLabel.textContent = 'Checking Engine...';
-        statusDesc.textContent = 'Probing local server & web routes';
+        statusDesc.textContent = 'Probing local conversion server';
 
         chrome.runtime.sendMessage({ action: 'CHECK_SERVER_HEALTH' }, (response) => {
             if (response && response.isAlive) {
                 statusDot.className = 'status-dot active-local';
-                statusLabel.textContent = 'Local Companion: Connected';
-                statusDesc.textContent = 'Direct 320kbps offline conversion active';
+                statusLabel.textContent = 'Local Engine: Online 🟢';
+                statusDesc.textContent = 'Zero external APIs · Direct 320kbps MP3';
             } else {
-                statusDot.className = 'status-dot active-web';
-                statusLabel.textContent = 'Cloud Web Engine: Active';
-                statusDesc.textContent = 'Ready for one-click web conversion';
+                statusDot.className = 'status-dot';
+                statusLabel.textContent = 'Local Engine: Offline ⚠️';
+                statusDesc.textContent = 'Double-click start-server.bat to start';
             }
         });
     }

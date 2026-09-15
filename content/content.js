@@ -45,7 +45,7 @@
         return window.location.pathname === '/watch' && !!getVideoId();
     }
 
-    function createToast(title, message, type = 'info') {
+    function createToast(title, message, type = 'info', extraHtml = '') {
         let container = document.getElementById('ytmp3-toast-container');
         if (!container) {
             container = document.createElement('div');
@@ -66,6 +66,7 @@
             <div class="ytmp3-toast-content">
                 <div class="ytmp3-toast-title">${escapeHtml(title)}</div>
                 <div class="ytmp3-toast-desc">${escapeHtml(message)}</div>
+                ${extraHtml}
             </div>
             <div class="ytmp3-toast-close" title="Close">✕</div>
         `;
@@ -78,14 +79,16 @@
 
         container.appendChild(toast);
 
-        // Auto dismiss after 6 seconds
-        setTimeout(() => {
-            if (toast.parentNode) {
-                toast.style.opacity = '0';
-                toast.style.transform = 'translateY(10px)';
-                setTimeout(() => toast.remove(), 300);
-            }
-        }, 6000);
+        // Auto dismiss after 7 seconds if not an offline warning
+        if (type !== 'warning') {
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.style.opacity = '0';
+                    toast.style.transform = 'translateY(10px)';
+                    setTimeout(() => toast.remove(), 300);
+                }
+            }, 7000);
+        }
     }
 
     function escapeHtml(str) {
@@ -112,7 +115,7 @@
 
         isProcessing = true;
         updateButtonState('loading', 'Converting...');
-        createToast(title, `Preparing ${quality}kbps ${format.toUpperCase()} conversion...`, 'info');
+        createToast(title, `Converting to ${quality}kbps ${format.toUpperCase()} (100% locally)...`, 'info');
 
         chrome.runtime.sendMessage({
             action: 'START_DOWNLOAD',
@@ -129,18 +132,31 @@
             if (chrome.runtime.lastError) {
                 console.error('[YT to MP3] Runtime error:', chrome.runtime.lastError);
                 updateButtonState('error', 'Error');
-                createToast('Conversion Error', chrome.runtime.lastError.message || 'Failed to connect to extension background.', 'error');
+                createToast('Extension Error', chrome.runtime.lastError.message, 'error');
                 setTimeout(() => updateButtonState('default'), 3000);
                 return;
             }
 
             if (response && response.success) {
                 updateButtonState('success', 'Ready!');
-                createToast(title, `Download started! (${quality}kbps ${format.toUpperCase()})`, 'success');
+                createToast(title, `Download complete! Saved directly to your Downloads folder.`, 'success');
                 setTimeout(() => updateButtonState('default'), 4000);
+            } else if (response && response.serverOffline) {
+                updateButtonState('default');
+                const extra = `
+                    <div style="margin-top:8px; display:flex; flex-direction:column; gap:6px;">
+                        <div style="font-size:11px; color:#ffaa00; background:rgba(255,170,0,0.12); padding:6px 8px; border-radius:6px;">
+                            💡 Double-click <strong>start-server.bat</strong> (or <strong>start-server-background.vbs</strong>) in your ytmp3 folder.
+                        </div>
+                        <a href="https://y2meta.mobi/youtube/${videoId}" target="_blank" style="display:inline-block; text-align:center; font-size:11px; color:#ffffff; background:#ff0033; padding:5px 10px; border-radius:6px; text-decoration:none; font-weight:600; margin-top:2px;">
+                            Or Open Fast Web Converter ↗
+                        </a>
+                    </div>
+                `;
+                createToast('Local Converter Server Offline', 'To download MP3s directly with 0 ads and 0 external APIs:', 'warning', extra);
             } else {
                 updateButtonState('error', 'Failed');
-                const errMsg = (response && response.error) || 'Conversion failed. Try another quality or local server.';
+                const errMsg = (response && response.error) || 'Conversion failed.';
                 createToast('Conversion Alert', errMsg, 'error');
                 setTimeout(() => updateButtonState('default'), 4000);
             }
@@ -177,7 +193,7 @@
         const existingBtn = document.getElementById('ytmp3-injected-container');
 
         if (existingBtn && currentVideoId === videoId) {
-            return; // Already cleanly injected for this video
+            return;
         }
 
         if (existingBtn && currentVideoId !== videoId) {
@@ -186,7 +202,6 @@
 
         currentVideoId = videoId;
 
-        // Find insertion anchor on YouTube
         const targetContainer =
             document.querySelector('#above-the-fold #top-level-buttons-computed') ||
             document.querySelector('ytd-watch-metadata #actions #top-level-buttons-computed') ||
@@ -196,7 +211,7 @@
             document.querySelector('#owner');
 
         if (!targetContainer) {
-            return; // Container not yet rendered in DOM
+            return;
         }
 
         const wrapper = document.createElement('div');
@@ -204,7 +219,7 @@
         wrapper.className = 'ytmp3-wrapper';
 
         wrapper.innerHTML = `
-            <div class="ytmp3-pill-btn" title="Download YouTube audio as MP3">
+            <div class="ytmp3-pill-btn" title="Download YouTube audio as 320kbps MP3 (100% locally)">
                 <div class="ytmp3-action-trigger" id="ytmp3-btn-action">
                     <span class="ytmp3-icon-wrap">${MUSIC_ICON}</span>
                     <span class="ytmp3-label">MP3</span>
@@ -215,10 +230,10 @@
                 </div>
             </div>
             <div class="ytmp3-menu" id="ytmp3-menu">
-                <div class="ytmp3-menu-header">Audio (MP3)</div>
+                <div class="ytmp3-menu-header">Audio (Direct MP3)</div>
                 <div class="ytmp3-menu-item" data-quality="320" data-format="mp3">
                     <div class="ytmp3-menu-item-left">🎵 320 kbps</div>
-                    <span class="ytmp3-badge">Ultra</span>
+                    <span class="ytmp3-badge">Studio</span>
                 </div>
                 <div class="ytmp3-menu-item" data-quality="256" data-format="mp3">
                     <div class="ytmp3-menu-item-left">🎵 256 kbps</div>
@@ -233,7 +248,7 @@
                     <span style="font-size:11px;color:#aaa">Fast</span>
                 </div>
                 <div class="ytmp3-menu-divider"></div>
-                <div class="ytmp3-menu-header">Video (MP4)</div>
+                <div class="ytmp3-menu-header">Video (Direct MP4)</div>
                 <div class="ytmp3-menu-item" data-quality="1080" data-format="mp4">
                     <div class="ytmp3-menu-item-left">🎬 MP4 Video</div>
                     <span class="ytmp3-badge" style="background:#1890ff">HD</span>
@@ -241,7 +256,6 @@
             </div>
         `;
 
-        // Direct click on MP3 action button
         wrapper.querySelector('#ytmp3-btn-action').addEventListener('click', (e) => {
             e.stopPropagation();
             chrome.storage.local.get(['preferredQuality'], (res) => {
@@ -250,14 +264,12 @@
             });
         });
 
-        // Dropdown toggle
         const dropdownTrigger = wrapper.querySelector('#ytmp3-btn-dropdown');
         dropdownTrigger.addEventListener('click', (e) => {
             e.stopPropagation();
             wrapper.classList.toggle('menu-open');
         });
 
-        // Dropdown item selection
         wrapper.querySelectorAll('.ytmp3-menu-item').forEach(item => {
             item.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -268,31 +280,27 @@
             });
         });
 
-        // Close dropdown when clicking outside
         document.addEventListener('click', (e) => {
             if (!wrapper.contains(e.target)) {
                 wrapper.classList.remove('menu-open');
             }
         });
 
-        // Insert into target container
         if (targetContainer.id === 'top-level-buttons-computed') {
             targetContainer.insertBefore(wrapper, targetContainer.firstChild);
         } else {
             targetContainer.appendChild(wrapper);
         }
 
-        console.log('[YT to MP3] Injected button under video:', videoId);
+        console.log('[YT to MP3] Ready on video:', videoId);
     }
 
-    // SPA Observer and Event Listeners
     function initObserver() {
         injectButton();
 
-        // YouTube Navigation Events
         window.addEventListener('yt-navigate-finish', () => {
-            setTimeout(injectButton, 500);
-            setTimeout(injectButton, 1500);
+            setTimeout(injectButton, 400);
+            setTimeout(injectButton, 1200);
         });
 
         window.addEventListener('yt-page-data-updated', () => {
@@ -303,7 +311,6 @@
             setTimeout(injectButton, 500);
         });
 
-        // DOM Mutation Observer for dynamically rendered action bars
         const observer = new MutationObserver(() => {
             if (isWatchPage() && !document.getElementById('ytmp3-injected-container')) {
                 injectButton();
@@ -315,7 +322,6 @@
             subtree: true
         });
 
-        // Interval safeguard for SPA transition timing
         setInterval(() => {
             if (isWatchPage() && !document.getElementById('ytmp3-injected-container')) {
                 injectButton();
@@ -323,7 +329,6 @@
         }, 2000);
     }
 
-    // Start on load
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initObserver);
     } else {

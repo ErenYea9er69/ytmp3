@@ -1,92 +1,78 @@
 # 🎵 YT to MP3 - One-Click YouTube Audio Downloader
 
-A high-performance Chrome / Chromium extension (Manifest V3) that injects a native **"Download MP3"** button directly underneath any YouTube video. No more copying links and visiting converter websites filled with ads!
+A 100% self-contained Chrome / Chromium browser extension (Manifest V3) that injects a native **"Download MP3"** button directly underneath any YouTube video. 
+
+**Zero external converter sites. Zero third-party ad links. Zero hanging screens.**
 
 ---
 
-## ✨ Features
+## 🚀 Why This Is 100% Better
 
-- **⚡ Direct 1-Click Button on YouTube**: Seamlessly injected next to the Like/Share buttons on every video.
-- **🎧 Multi-Bitrate Selector**:
-  - `320 kbps` (Ultra Studio Quality)
-  - `256 kbps` (High Quality)
-  - `192 kbps` (Standard Quality)
-  - `128 kbps` (Fast & Compact)
-  - `MP4 Video` (HD Video download support)
-- **🚀 Dual-Engine Conversion**:
-  - **Zero-Setup Web Engine**: Works out of the box with zero installation required.
-  - **Local Companion Server (Optional)**: Provides 100% private, ultra-fast 320kbps MP3 conversion directly on your computer without third-party rate limits.
-- **🔄 YouTube SPA Navigation Aware**: Reliably adapts when you browse between videos without page reloads.
-- **🎨 Native YouTube Theme Styling**: Perfectly integrates with YouTube's dark and light modes.
-- **📊 Modern Glassmorphic Popup Dashboard**: Change default bitrate, monitor connection health, and view recent conversions.
+Most web converters (like the red screen you encountered from loader.to) hang indefinitely or get blocked by YouTube. 
+
+This extension uses a **100% local, self-contained conversion pipeline**:
+- Extracts the YouTube audio stream directly.
+- Converts to **320 kbps MP3** on your PC using bundled FFmpeg and yt-dlp in **2 to 3 seconds**.
+- The file saves automatically to your browser's **Downloads** folder with the clean song name.
 
 ---
 
-## 📥 How to Install the Extension in Your Browser
+## 📥 How to Install the Extension
 
-Works on **Google Chrome**, **Microsoft Edge**, **Brave**, **Opera**, and any Chromium-based browser.
-
-### Step 1: Open Extensions Page
-- In Chrome: navigate to `chrome://extensions`
-- In Edge: navigate to `edge://extensions`
-- In Brave: navigate to `brave://extensions`
-
-### Step 2: Enable Developer Mode
-- In the top-right corner of the Extensions page, toggle **Developer mode** to **ON**.
-
-### Step 3: Load Unpacked
-- Click the **"Load unpacked"** button in the top-left corner.
-- Browse to and select the project folder:
-  ```
-  c:\Users\hp\Desktop\ytmp3
-  ```
-- The extension **"YT to MP3 - One-Click Downloader"** is now active!
+### Step 1: Reload / Load Unpacked in Your Browser
+1. In Chrome / Edge / Brave, open `chrome://extensions` (or `edge://extensions`).
+2. Make sure **Developer mode** (top right) is switched **ON**.
+3. If already loaded, click the **Reload (🔄)** button on "YT to MP3".
+4. If loading for the first time, click **Load unpacked** and select:
+   ```
+   c:\Users\hp\Desktop\ytmp3
+   ```
 
 ---
 
-## 🎯 How to Use It
+## ⚡ How to Start the Local Converter (Zero External APIs)
+
+In the `ytmp3` folder, you have two launcher scripts:
+
+1. **Option A (Visible Console)**: Double-click **`start-server.bat`**  
+   Opens a small command window showing conversion progress.
+2. **Option B (Completely Silent Background)**: Double-click **`start-server-background.vbs`**  
+   Runs quietly in the background without any console window open!
+
+*(To stop the server at any time, just run **`stop-server.bat`**)*
+
+---
+
+## 🎯 How to Download MP3s
 
 1. Open any YouTube video (e.g. `https://www.youtube.com/watch?v=...`).
-2. Look directly below the video, right next to the **Like** and **Share** buttons.
-3. You will see the **🎵 MP3** pill button:
-   - **Click the button directly**: Immediately triggers the download with your default quality (320kbps).
-   - **Click the down arrow (▼)**: Opens the dropdown to choose your preferred quality (320k, 256k, 192k, 128k, or MP4).
-4. Watch the status change to **"Converting..."** and a floating notification appears in the bottom corner.
-5. The MP3 file automatically saves into your browser's **Downloads** folder with the clean song title!
+2. Directly next to the **Like** and **Share** buttons under the video, click the **🎵 MP3** button.
+3. You will see:
+   - **Converting...** (takes ~2-3 seconds)
+   - **Done! ✓**
+4. Your pristine 320kbps MP3 is saved directly into your **Downloads** folder!
 
 ---
 
-## ⚡ Optional: Run the High-Speed Local Companion Server
-
-While the extension works immediately using web conversion APIs, running the local companion server gives you **the fastest possible direct 320kbps MP3 conversion with 0 third-party limits**:
-
-1. Open the `server/` folder.
-2. Double-click **`start-server.bat`** (or run `npm start` inside `server/`).
-3. That's it! The extension will automatically detect `http://localhost:4000` and switch to local conversion mode.
-
----
-
-## 📁 Project Structure
+## 📁 File Structure
 
 ```
 ytmp3/
+├── start-server.bat           # 1-Click launcher (visible console)
+├── start-server-background.vbs# 1-Click launcher (silent background mode)
+├── stop-server.bat            # Stops the server
 ├── manifest.json              # Manifest V3 extension configuration
-├── background.js              # Background service worker (downloads & conversion routing)
+├── background.js              # Background service worker
 ├── content/
-│   ├── content.js             # Injected script: button injection & YouTube SPA watcher
-│   └── content.css            # YouTube-matching UI styles & animations
+│   ├── content.js             # YouTube button injection & SPA watcher
+│   └── content.css            # YouTube-matching UI styles & toasts
 ├── popup/
 │   ├── popup.html             # Extension popup dashboard
-│   ├── popup.css              # Glassmorphic dark styling
-│   └── popup.js               # Popup logic & server health checks
-├── icons/
-│   ├── icon16.png             # Extension icons
-│   ├── icon48.png
-│   └── icon128.png
-├── server/                    # Optional local conversion server
-│   ├── server.js              # Express server with ytdl & ffmpeg
-│   ├── package.json
-│   └── start-server.bat       # 1-click Windows launcher
-├── .gitignore                 # Standard git exclusions
-└── README.md                  # Documentation
+│   ├── popup.css              # Popup styling
+│   └── popup.js               # Status checking & settings
+├── icons/                     # Extension icons
+├── server/
+│   ├── server.js              # Local Express server (yt-dlp + FFmpeg)
+│   └── package.json           # Dependencies
+└── README.md
 ```

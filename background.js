@@ -2,14 +2,8 @@
 
 const LOCAL_SERVER_URL = 'http://localhost:4000';
 
-const COBALT_INSTANCES = [
-    'https://api.cobalt.tools',
-    'https://cobalt.api.sc-0.cloud',
-    'https://co.wuk.sh'
-];
-
 function sanitizeFilename(name) {
-    if (!name) return 'audio';
+    if (!name) return 'youtube-audio';
     return name
         .replace(/[/\\?%*:|"<>]/g, '_')
         .replace(/\s+/g, ' ')
@@ -20,7 +14,7 @@ function sanitizeFilename(name) {
 async function isLocalServerAlive() {
     try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 1200);
+        const timeoutId = setTimeout(() => controller.abort(), 1500);
         const res = await fetch(`${LOCAL_SERVER_URL}/health`, { signal: controller.signal });
         clearTimeout(timeoutId);
         if (res.ok) {
@@ -28,7 +22,7 @@ async function isLocalServerAlive() {
             return data.status === 'ok';
         }
     } catch (e) {
-        // Local server not running
+        // Server offline
     }
     return false;
 }
@@ -46,53 +40,11 @@ async function addToHistory(item) {
             format: item.format,
             timestamp: new Date().toISOString()
         });
-        // Keep last 30 items
         if (history.length > 30) history.pop();
         await chrome.storage.local.set({ downloadHistory: history });
     } catch (e) {
         console.error('Failed to save download history:', e);
     }
-}
-
-// Try downloading via Cobalt instance
-async function tryCobaltDownload(videoUrl, quality, format) {
-    const isAudio = format === 'mp3';
-
-    for (const instance of COBALT_INSTANCES) {
-        try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 9000);
-
-            const payload = {
-                url: videoUrl,
-                downloadMode: isAudio ? 'audio' : 'auto',
-                audioFormat: isAudio ? 'mp3' : undefined,
-                audioBitrate: quality || '320'
-            };
-
-            const response = await fetch(`${instance}/`, {
-                method: 'POST',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(payload),
-                signal: controller.signal
-            });
-
-            clearTimeout(timeoutId);
-
-            if (response.ok) {
-                const data = await response.json();
-                if (data.url) {
-                    return data.url;
-                }
-            }
-        } catch (err) {
-            console.warn(`Cobalt instance ${instance} error:`, err.message);
-        }
-    }
-    return null;
 }
 
 // Main download handler
@@ -101,13 +53,13 @@ async function handleDownload(data, sendResponse) {
     const safeTitle = sanitizeFilename(title);
     const targetFilename = `${safeTitle}.${format}`;
 
-    console.log(`[YT to MP3] Processing download for "${safeTitle}" (${quality}k ${format})...`);
+    console.log(`[YT to MP3] Processing download: "${safeTitle}" (${quality}kbps ${format})...`);
 
     try {
-        // 1. Check if Local Companion Server is running
+        // 1. Check if Local 100% Self-Contained Server is running
         const localActive = await isLocalServerAlive();
         if (localActive) {
-            console.log('[YT to MP3] Routing through Local Companion Server (320kbps High Speed)...');
+            console.log('[YT to MP3] Downloading via Local Self-Contained Engine (Zero External APIs)...');
             const downloadUrl = `${LOCAL_SERVER_URL}/download?url=${encodeURIComponent(videoUrl)}&quality=${quality}&format=${format}&title=${encodeURIComponent(safeTitle)}`;
 
             chrome.downloads.download({
@@ -116,6 +68,7 @@ async function handleDownload(data, sendResponse) {
                 saveAs: false
             }, (downloadId) => {
                 if (chrome.runtime.lastError) {
+                    console.error('[YT to MP3] Download error:', chrome.runtime.lastError);
                     sendResponse({ success: false, error: chrome.runtime.lastError.message });
                 } else {
                     addToHistory({ title: safeTitle, videoId, quality, format });
@@ -125,40 +78,17 @@ async function handleDownload(data, sendResponse) {
             return;
         }
 
-        // 2. Try Web Conversion Engine
-        console.log('[YT to MP3] Local server offline, querying web converter engine...');
-        const streamUrl = await tryCobaltDownload(videoUrl, quality, format);
-
-        if (streamUrl) {
-            chrome.downloads.download({
-                url: streamUrl,
-                filename: targetFilename,
-                saveAs: false
-            }, (downloadId) => {
-                if (chrome.runtime.lastError) {
-                    sendResponse({ success: false, error: chrome.runtime.lastError.message });
-                } else {
-                    addToHistory({ title: safeTitle, videoId, quality, format });
-                    sendResponse({ success: true, source: 'web', downloadId });
-                }
-            });
-            return;
-        }
-
-        // 3. Fallback: Open fast zero-ad web converter tab directly ready for this video
-        console.log('[YT to MP3] Direct stream API busy, triggering instant web converter fallback...');
-        const fallbackUrl = `https://loader.to/api/button/?url=${encodeURIComponent(videoUrl)}&f=${format === 'mp3' ? 'mp3' : '1080'}&color=ff0033`;
-        
-        chrome.tabs.create({ url: fallbackUrl, active: true }, () => {
-            sendResponse({
-                success: true,
-                source: 'fallback',
-                note: 'Opened instant converter tab.'
-            });
+        // 2. If Local Server is offline, do NOT use broken hanging services!
+        // Return clear status so content.js can prompt the user to click start-server.bat
+        console.warn('[YT to MP3] Local server is not running on http://localhost:4000');
+        sendResponse({
+            success: false,
+            serverOffline: true,
+            error: 'Local conversion server is offline. Please run start-server.bat in your ytmp3 folder for 100% self-contained downloads.'
         });
 
     } catch (err) {
-        console.error('[YT to MP3] Download handler failed:', err);
+        console.error('[YT to MP3] Download error:', err);
         sendResponse({ success: false, error: err.message || 'Conversion failed.' });
     }
 }
@@ -167,7 +97,7 @@ async function handleDownload(data, sendResponse) {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === 'START_DOWNLOAD') {
         handleDownload(message.data, sendResponse);
-        return true; // Keep channel open for async response
+        return true;
     }
 
     if (message.action === 'CHECK_SERVER_HEALTH') {
