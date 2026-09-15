@@ -1,50 +1,69 @@
 /* YouTube to MP3 Extension - Injected Styles */
 
 .ytmp3-wrapper {
-    display: inline-flex;
-    align-items: center;
-    position: relative;
-    margin-left: 8px;
-    margin-right: 8px;
-    vertical-align: middle;
-    z-index: 9999;
+    display: inline-flex !important;
+    align-items: center !important;
+    position: relative !important;
+    margin-left: 8px !important;
+    margin-right: 8px !important;
+    vertical-align: middle !important;
+    flex-shrink: 0 !important; /* Prevents YouTube from collapsing the button */
+    z-index: 9999 !important;
+    height: 36px !important;
 }
 
-/* Main Pill Button */
+/* Main Pill Button - Styled exactly like YouTube's native action buttons */
 .ytmp3-pill-btn {
-    display: inline-flex;
-    align-items: center;
-    height: 36px;
-    border-radius: 18px;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    color: #f1f1f1;
-    font-family: "Roboto", "YouTube Sans", -apple-system, BlinkMacSystemFont, sans-serif;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    overflow: hidden;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    box-sizing: border-box;
-    user-select: none;
-    backdrop-filter: blur(8px);
+    display: inline-flex !important;
+    align-items: center !important;
+    height: 36px !important;
+    border-radius: 18px !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+    border: none !important;
+    color: #f1f1f1 !important;
+    font-family: "Roboto", "YouTube Sans", -apple-system, BlinkMacSystemFont, sans-serif !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    cursor: pointer !important;
+    overflow: hidden !important;
+    transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease !important;
+    box-sizing: border-box !important;
+    user-select: none !important;
+    position: relative !important;
+}
+
+/* Progress Fill Bar inside the button itself during conversion! */
+.ytmp3-btn-progress-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, rgba(255, 0, 51, 0.35), rgba(255, 0, 51, 0.6));
+    transition: width 0.25s ease;
+    pointer-events: none;
+    z-index: 1;
 }
 
 /* Light theme YouTube adaptation */
-html[light] .ytmp3-pill-btn,
-body[light] .ytmp3-pill-btn,
-html:not([dark]) .ytmp3-pill-btn {
-    background: rgba(0, 0, 0, 0.05);
-    border-color: rgba(0, 0, 0, 0.12);
-    color: #0f0f0f;
+html:not([dark]) .ytmp3-pill-btn,
+body:not([dark]) .ytmp3-pill-btn {
+    background: rgba(0, 0, 0, 0.06) !important;
+    color: #0f0f0f !important;
 }
 
 .ytmp3-pill-btn:hover {
-    background: linear-gradient(135deg, #ff0033 0%, #cc0000 100%);
-    border-color: #ff0033;
-    color: #ffffff;
-    box-shadow: 0 4px 14px rgba(255, 0, 51, 0.4);
+    background: rgba(255, 255, 255, 0.2) !important;
     transform: translateY(-1px);
+}
+
+html:not([dark]) .ytmp3-pill-btn:hover {
+    background: rgba(0, 0, 0, 0.1) !important;
+}
+
+.ytmp3-pill-btn.is-active {
+    background: rgba(255, 0, 51, 0.2) !important;
+    box-shadow: 0 0 12px rgba(255, 0, 51, 0.4) !important;
 }
 
 .ytmp3-pill-btn:active {
@@ -53,20 +72,22 @@ html:not([dark]) .ytmp3-pill-btn {
 
 /* Main Action Click Area */
 .ytmp3-action-trigger {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 0 12px 0 14px;
-    height: 100%;
-    cursor: pointer;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    padding: 0 12px 0 14px !important;
+    height: 100% !important;
+    cursor: pointer !important;
+    position: relative !important;
+    z-index: 2 !important;
 }
 
 .ytmp3-icon {
-    width: 18px;
-    height: 18px;
-    fill: currentColor;
-    flex-shrink: 0;
-    transition: transform 0.2s ease;
+    width: 18px !important;
+    height: 18px !important;
+    fill: currentColor !important;
+    flex-shrink: 0 !important;
+    transition: transform 0.2s ease !important;
 }
 
 .ytmp3-pill-btn:hover .ytmp3-icon {
@@ -74,82 +95,82 @@ html:not([dark]) .ytmp3-pill-btn {
 }
 
 .ytmp3-label {
-    font-size: 13.5px;
-    font-weight: 600;
-    letter-spacing: 0.2px;
-    white-space: nowrap;
+    font-size: 13.5px !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.2px !important;
+    white-space: nowrap !important;
 }
 
 /* Divider inside pill */
 .ytmp3-pill-divider {
-    width: 1px;
-    height: 18px;
-    background: rgba(255, 255, 255, 0.2);
-    margin: 0 2px;
+    width: 1px !important;
+    height: 18px !important;
+    background: rgba(255, 255, 255, 0.15) !important;
+    margin: 0 2px !important;
+    position: relative !important;
+    z-index: 2 !important;
 }
 
 html:not([dark]) .ytmp3-pill-divider {
-    background: rgba(0, 0, 0, 0.15);
-}
-
-.ytmp3-pill-btn:hover .ytmp3-pill-divider {
-    background: rgba(255, 255, 255, 0.3);
+    background: rgba(0, 0, 0, 0.12) !important;
 }
 
 /* Chevron Dropdown Trigger */
 .ytmp3-dropdown-trigger {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 100%;
-    padding-right: 4px;
-    cursor: pointer;
-    transition: background 0.15s ease;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 28px !important;
+    height: 100% !important;
+    padding-right: 4px !important;
+    cursor: pointer !important;
+    transition: background 0.15s ease !important;
+    position: relative !important;
+    z-index: 2 !important;
 }
 
 .ytmp3-dropdown-trigger:hover {
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.15) !important;
 }
 
 .ytmp3-chevron {
-    width: 14px;
-    height: 14px;
-    fill: currentColor;
-    transition: transform 0.25s ease;
+    width: 14px !important;
+    height: 14px !important;
+    fill: currentColor !important;
+    transition: transform 0.25s ease !important;
 }
 
 .ytmp3-wrapper.menu-open .ytmp3-chevron {
-    transform: rotate(180deg);
+    transform: rotate(180deg) !important;
 }
 
 /* Dropdown Menu Container */
 .ytmp3-menu {
-    position: absolute;
-    top: calc(100% + 8px);
-    right: 0;
-    min-width: 220px;
-    background: rgba(24, 24, 28, 0.96);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 14px;
-    padding: 8px;
-    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05);
-    display: none;
-    flex-direction: column;
-    z-index: 100000;
-    animation: ytmp3FadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    position: absolute !important;
+    top: calc(100% + 8px) !important;
+    right: 0 !important;
+    min-width: 220px !important;
+    background: rgba(28, 28, 32, 0.98) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    border-radius: 14px !important;
+    padding: 8px !important;
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+    display: none !important;
+    flex-direction: column !important;
+    z-index: 100000 !important;
+    animation: ytmp3FadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
 }
 
 html:not([dark]) .ytmp3-menu {
-    background: rgba(255, 255, 255, 0.96);
-    border-color: rgba(0, 0, 0, 0.1);
-    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
+    background: rgba(255, 255, 255, 0.98) !important;
+    border-color: rgba(0, 0, 0, 0.1) !important;
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.05) !important;
 }
 
 .ytmp3-wrapper.menu-open .ytmp3-menu {
-    display: flex;
+    display: flex !important;
 }
 
 @keyframes ytmp3FadeIn {
@@ -164,83 +185,83 @@ html:not([dark]) .ytmp3-menu {
 }
 
 .ytmp3-menu-header {
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    color: #aaaaaa;
-    padding: 6px 10px 4px 10px;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.8px !important;
+    color: #aaaaaa !important;
+    padding: 6px 10px 4px 10px !important;
 }
 
 html:not([dark]) .ytmp3-menu-header {
-    color: #666666;
+    color: #666666 !important;
 }
 
 .ytmp3-menu-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 9px 12px;
-    border-radius: 8px;
-    font-size: 13.5px;
-    font-weight: 500;
-    color: #f1f1f1;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    text-decoration: none;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 9px 12px !important;
+    border-radius: 8px !important;
+    font-size: 13.5px !important;
+    font-weight: 500 !important;
+    color: #f1f1f1 !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease !important;
+    text-decoration: none !important;
 }
 
 html:not([dark]) .ytmp3-menu-item {
-    color: #1a1a1a;
+    color: #1a1a1a !important;
 }
 
 .ytmp3-menu-item:hover {
-    background: rgba(255, 255, 255, 0.12);
-    color: #ffffff;
+    background: rgba(255, 255, 255, 0.12) !important;
+    color: #ffffff !important;
     transform: translateX(2px);
 }
 
 html:not([dark]) .ytmp3-menu-item:hover {
-    background: rgba(0, 0, 0, 0.06);
-    color: #000000;
+    background: rgba(0, 0, 0, 0.06) !important;
+    color: #000000 !important;
 }
 
 .ytmp3-menu-item-left {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
 }
 
 .ytmp3-badge {
-    font-size: 10px;
-    font-weight: 700;
-    padding: 2px 6px;
-    border-radius: 4px;
-    background: linear-gradient(135deg, #ff0033, #e60026);
-    color: #fff;
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    padding: 2px 6px !important;
+    border-radius: 4px !important;
+    background: linear-gradient(135deg, #ff0033, #e60026) !important;
+    color: #fff !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.4px !important;
 }
 
 .ytmp3-menu-divider {
-    height: 1px;
-    background: rgba(255, 255, 255, 0.1);
-    margin: 6px 0;
+    height: 1px !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+    margin: 6px 0 !important;
 }
 
 html:not([dark]) .ytmp3-menu-divider {
-    background: rgba(0, 0, 0, 0.08);
+    background: rgba(0, 0, 0, 0.08) !important;
 }
 
 /* Spinner for converting state */
 .ytmp3-spinner {
-    width: 16px;
-    height: 16px;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-top-color: #ffffff;
-    border-radius: 50%;
-    animation: ytmp3Spin 0.7s linear infinite;
-    display: inline-block;
+    width: 14px !important;
+    height: 14px !important;
+    border: 2px solid rgba(255, 255, 255, 0.3) !important;
+    border-top-color: #ff0033 !important;
+    border-radius: 50% !important;
+    animation: ytmp3Spin 0.7s linear infinite !important;
+    display: inline-block !important;
 }
 
 @keyframes ytmp3Spin {
@@ -249,99 +270,102 @@ html:not([dark]) .ytmp3-menu-divider {
 
 /* In-Page Toast Notification */
 .ytmp3-toast-container {
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    z-index: 2147483647;
-    pointer-events: none;
+    position: fixed !important;
+    bottom: 28px !important;
+    right: 28px !important;
+    z-index: 2147483647 !important;
+    pointer-events: none !important;
 }
 
 .ytmp3-toast {
-    pointer-events: auto;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background: rgba(18, 18, 22, 0.94);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 14px;
-    padding: 12px 18px;
-    color: #ffffff;
-    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 0, 51, 0.2);
-    min-width: 300px;
-    max-width: 420px;
-    font-family: "Roboto", sans-serif;
-    animation: ytmp3SlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    transition: all 0.3s ease;
+    pointer-events: auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    background: rgba(18, 18, 22, 0.96) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    border-radius: 14px !important;
+    padding: 14px 18px !important;
+    color: #ffffff !important;
+    box-shadow: 0 16px 44px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 0, 51, 0.25) !important;
+    min-width: 320px !important;
+    max-width: 420px !important;
+    font-family: "Roboto", sans-serif !important;
+    animation: ytmp3SlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+    transition: all 0.3s ease !important;
 }
 
-.ytmp3-toast.toast-error {
-    border-color: rgba(255, 77, 79, 0.4);
-    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 77, 79, 0.3);
-}
-
-.ytmp3-toast.toast-success {
-    border-color: rgba(82, 196, 26, 0.4);
-    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(82, 196, 26, 0.3);
-}
-
-@keyframes ytmp3SlideUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px) scale(0.95);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
+.ytmp3-toast-header {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
 }
 
 .ytmp3-toast-icon-wrap {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: rgba(255, 0, 51, 0.15);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    color: #ff0033;
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 50% !important;
+    background: rgba(255, 0, 51, 0.15) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+    color: #ff0033 !important;
 }
 
 .ytmp3-toast-content {
-    flex: 1;
-    overflow: hidden;
+    flex: 1 !important;
+    overflow: hidden !important;
 }
 
 .ytmp3-toast-title {
-    font-size: 13.5px;
-    font-weight: 600;
-    color: #ffffff;
-    margin-bottom: 2px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    font-size: 13.5px !important;
+    font-weight: 600 !important;
+    color: #ffffff !important;
+    margin-bottom: 2px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
 }
 
 .ytmp3-toast-desc {
-    font-size: 12px;
-    color: #bbbbbb;
-    line-height: 1.3;
+    font-size: 12px !important;
+    color: #cccccc !important;
+    line-height: 1.3 !important;
+}
+
+/* Toast Progress Track & Bar */
+.ytmp3-toast-progress-track {
+    width: 100% !important;
+    height: 6px !important;
+    border-radius: 3px !important;
+    background: rgba(255, 255, 255, 0.12) !important;
+    overflow: hidden !important;
+    margin-top: 4px !important;
+}
+
+.ytmp3-toast-progress-fill {
+    height: 100% !important;
+    width: 0% !important;
+    background: linear-gradient(90deg, #ff0033, #ff4d4f) !important;
+    border-radius: 3px !important;
+    transition: width 0.25s ease !important;
 }
 
 .ytmp3-toast-close {
-    cursor: pointer;
-    color: #888;
-    padding: 4px;
-    border-radius: 4px;
-    transition: color 0.15s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    cursor: pointer !important;
+    color: #888 !important;
+    padding: 4px !important;
+    border-radius: 4px !important;
+    transition: color 0.15s ease !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
 }
 
 .ytmp3-toast-close:hover {
-    color: #fff;
-    background: rgba(255, 255, 255, 0.1);
+    color: #fff !important;
+    background: rgba(255, 255, 255, 0.1) !important;
 }

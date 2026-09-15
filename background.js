@@ -10,7 +10,6 @@ function sanitizeFilename(name) {
         .trim();
 }
 
-// Check local companion server
 async function isLocalServerAlive() {
     try {
         const controller = new AbortController();
@@ -27,7 +26,6 @@ async function isLocalServerAlive() {
     return false;
 }
 
-// Save item to history
 async function addToHistory(item) {
     try {
         const stored = await chrome.storage.local.get(['downloadHistory']);
@@ -47,20 +45,17 @@ async function addToHistory(item) {
     }
 }
 
-// Main download handler
 async function handleDownload(data, sendResponse) {
-    const { videoId, videoUrl, title, quality, format } = data;
+    const { videoId, videoUrl, title, quality, format, jobId } = data;
     const safeTitle = sanitizeFilename(title);
     const targetFilename = `${safeTitle}.${format}`;
 
-    console.log(`[YT to MP3] Processing download: "${safeTitle}" (${quality}kbps ${format})...`);
+    console.log(`[YT to MP3] Job ${jobId}: "${safeTitle}" (${quality}kbps ${format})...`);
 
     try {
-        // 1. Check if Local 100% Self-Contained Server is running
         const localActive = await isLocalServerAlive();
         if (localActive) {
-            console.log('[YT to MP3] Downloading via Local Self-Contained Engine (Zero External APIs)...');
-            const downloadUrl = `${LOCAL_SERVER_URL}/download?url=${encodeURIComponent(videoUrl)}&quality=${quality}&format=${format}&title=${encodeURIComponent(safeTitle)}`;
+            const downloadUrl = `${LOCAL_SERVER_URL}/download?url=${encodeURIComponent(videoUrl)}&quality=${quality}&format=${format}&title=${encodeURIComponent(safeTitle)}&jobId=${encodeURIComponent(jobId)}`;
 
             chrome.downloads.download({
                 url: downloadUrl,
@@ -72,19 +67,16 @@ async function handleDownload(data, sendResponse) {
                     sendResponse({ success: false, error: chrome.runtime.lastError.message });
                 } else {
                     addToHistory({ title: safeTitle, videoId, quality, format });
-                    sendResponse({ success: true, source: 'local', downloadId });
+                    sendResponse({ success: true, source: 'local', downloadId, jobId });
                 }
             });
             return;
         }
 
-        // 2. If Local Server is offline, do NOT use broken hanging services!
-        // Return clear status so content.js can prompt the user to click start-server.bat
-        console.warn('[YT to MP3] Local server is not running on http://localhost:4000');
         sendResponse({
             success: false,
             serverOffline: true,
-            error: 'Local conversion server is offline. Please run start-server.bat in your ytmp3 folder for 100% self-contained downloads.'
+            error: 'Local conversion server is offline. Please run start-server.bat in your ytmp3 folder.'
         });
 
     } catch (err) {
@@ -93,10 +85,18 @@ async function handleDownload(data, sendResponse) {
     }
 }
 
-// Runtime message listener
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === 'START_DOWNLOAD') {
         handleDownload(message.data, sendResponse);
+        return true;
+    }
+
+    if (message.action === 'CHECK_PROGRESS') {
+        const jobId = message.jobId;
+        fetch(`${LOCAL_SERVER_URL}/progress?id=${encodeURIComponent(jobId)}`)
+            .then(res => res.json())
+            .then(data => sendResponse({ success: true, data }))
+            .catch(err => sendResponse({ success: false, error: err.message }));
         return true;
     }
 

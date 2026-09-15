@@ -1,12 +1,12 @@
-// YouTube to MP3 Extension - Injected Content Script
+// YouTube to MP3 Extension - Injected Content Script with Live Progress & Reliable Placement
 
 (function () {
     'use strict';
 
     let currentVideoId = null;
     let isProcessing = false;
+    let progressPollInterval = null;
 
-    // SVG Icons
     const MUSIC_ICON = `
         <svg class="ytmp3-icon" viewBox="0 0 24 24">
             <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
@@ -45,7 +45,7 @@
         return window.location.pathname === '/watch' && !!getVideoId();
     }
 
-    function createToast(title, message, type = 'info', extraHtml = '') {
+    function createToast(title, message, type = 'info', hasProgressBar = false) {
         let container = document.getElementById('ytmp3-toast-container');
         if (!container) {
             container = document.createElement('div');
@@ -54,41 +54,50 @@
             document.body.appendChild(container);
         }
 
-        const toast = document.createElement('div');
-        toast.className = `ytmp3-toast toast-${type}`;
+        let toast = document.getElementById('ytmp3-active-toast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'ytmp3-active-toast';
+            toast.className = `ytmp3-toast toast-${type}`;
+            container.appendChild(toast);
+        }
 
         const iconHtml = type === 'success' ? CHECK_ICON : MUSIC_ICON;
 
         toast.innerHTML = `
-            <div class="ytmp3-toast-icon-wrap">
-                ${iconHtml}
+            <div class="ytmp3-toast-header">
+                <div class="ytmp3-toast-icon-wrap">${iconHtml}</div>
+                <div class="ytmp3-toast-content">
+                    <div class="ytmp3-toast-title">${escapeHtml(title)}</div>
+                    <div class="ytmp3-toast-desc" id="ytmp3-toast-desc">${escapeHtml(message)}</div>
+                </div>
+                <div class="ytmp3-toast-close" title="Close">✕</div>
             </div>
-            <div class="ytmp3-toast-content">
-                <div class="ytmp3-toast-title">${escapeHtml(title)}</div>
-                <div class="ytmp3-toast-desc">${escapeHtml(message)}</div>
-                ${extraHtml}
-            </div>
-            <div class="ytmp3-toast-close" title="Close">✕</div>
+            ${hasProgressBar ? `
+                <div class="ytmp3-toast-progress-track">
+                    <div class="ytmp3-toast-progress-fill" id="ytmp3-toast-fill" style="width: 1%;"></div>
+                </div>
+            ` : ''}
         `;
 
         toast.querySelector('.ytmp3-toast-close').addEventListener('click', () => {
-            toast.style.opacity = '0';
-            toast.style.transform = 'translateY(10px)';
-            setTimeout(() => toast.remove(), 300);
+            toast.remove();
         });
 
-        container.appendChild(toast);
-
-        // Auto dismiss after 7 seconds if not an offline warning
-        if (type !== 'warning') {
+        if (type === 'success' || type === 'error') {
             setTimeout(() => {
-                if (toast.parentNode) {
-                    toast.style.opacity = '0';
-                    toast.style.transform = 'translateY(10px)';
-                    setTimeout(() => toast.remove(), 300);
-                }
-            }, 7000);
+                if (toast && toast.parentNode) toast.remove();
+            }, 5000);
         }
+
+        return toast;
+    }
+
+    function updateToastProgress(percent, stageText) {
+        const desc = document.getElementById('ytmp3-toast-desc');
+        const fill = document.getElementById('ytmp3-toast-fill');
+        if (desc) desc.textContent = `${stageText} (${percent}%)`;
+        if (fill) fill.style.width = `${percent}%`;
     }
 
     function escapeHtml(str) {
@@ -112,11 +121,37 @@
 
         const title = getVideoTitle();
         const videoUrl = window.location.href;
+        const jobId = 'job_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
 
         isProcessing = true;
-        updateButtonState('loading', 'Converting...');
-        createToast(title, `Converting to ${quality}kbps ${format.toUpperCase()} (100% locally)...`, 'info');
+        updateButtonProgress(1, 'Converting 1%');
+        createToast(title, `Connecting to local converter...`, 'info', true);
 
+        // Start progress poller
+        if (progressPollInterval) clearInterval(progressPollInterval);
+
+        progressPollInterval = setInterval(() => {
+            chrome.runtime.sendMessage({ action: 'CHECK_PROGRESS', jobId }, (res) => {
+                if (res && res.success && res.data) {
+                    const { percent, stage, completed } = res.data;
+                    if (percent > 0) {
+                        updateButtonProgress(percent, `MP3 ${percent}%`);
+                        updateToastProgress(percent, stage || 'Converting');
+                    }
+
+                    if (completed || percent >= 100) {
+                        clearInterval(progressPollInterval);
+                        progressPollInterval = null;
+                        isProcessing = false;
+                        updateButtonState('success', '✓ 100% Ready!');
+                        createToast(title, '✓ Download complete! (100%)', 'success', false);
+                        setTimeout(() => updateButtonState('default'), 3500);
+                    }
+                }
+            });
+        }, 250);
+
+        // Trigger download
         chrome.runtime.sendMessage({
             action: 'START_DOWNLOAD',
             data: {
@@ -124,43 +159,54 @@
                 videoUrl,
                 title,
                 quality,
-                format
+                format,
+                jobId
             }
         }, (response) => {
-            isProcessing = false;
-
             if (chrome.runtime.lastError) {
-                console.error('[YT to MP3] Runtime error:', chrome.runtime.lastError);
+                if (progressPollInterval) clearInterval(progressPollInterval);
+                isProcessing = false;
                 updateButtonState('error', 'Error');
                 createToast('Extension Error', chrome.runtime.lastError.message, 'error');
                 setTimeout(() => updateButtonState('default'), 3000);
                 return;
             }
 
-            if (response && response.success) {
-                updateButtonState('success', 'Ready!');
-                createToast(title, `Download complete! Saved directly to your Downloads folder.`, 'success');
-                setTimeout(() => updateButtonState('default'), 4000);
-            } else if (response && response.serverOffline) {
+            if (response && response.serverOffline) {
+                if (progressPollInterval) clearInterval(progressPollInterval);
+                isProcessing = false;
                 updateButtonState('default');
-                const extra = `
-                    <div style="margin-top:8px; display:flex; flex-direction:column; gap:6px;">
-                        <div style="font-size:11px; color:#ffaa00; background:rgba(255,170,0,0.12); padding:6px 8px; border-radius:6px;">
-                            💡 Double-click <strong>start-server.bat</strong> (or <strong>start-server-background.vbs</strong>) in your ytmp3 folder.
-                        </div>
-                        <a href="https://y2meta.mobi/youtube/${videoId}" target="_blank" style="display:inline-block; text-align:center; font-size:11px; color:#ffffff; background:#ff0033; padding:5px 10px; border-radius:6px; text-decoration:none; font-weight:600; margin-top:2px;">
-                            Or Open Fast Web Converter ↗
-                        </a>
+
+                const toast = createToast('Local Converter Server Offline', 'Run start-server.bat in your ytmp3 folder to enable 1-click downloads with 0 external APIs!', 'warning', false);
+                const extra = document.createElement('div');
+                extra.style.marginTop = '8px';
+                extra.innerHTML = `
+                    <div style="font-size:11px; color:#ffaa00; background:rgba(255,170,0,0.12); padding:6px 8px; border-radius:6px; margin-bottom:6px;">
+                        💡 Double-click <strong>start-server.bat</strong> (or <strong>start-server-background.vbs</strong>).
                     </div>
+                    <a href="https://y2meta.mobi/youtube/${videoId}" target="_blank" style="display:inline-block; text-align:center; font-size:11px; color:#ffffff; background:#ff0033; padding:5px 10px; border-radius:6px; text-decoration:none; font-weight:600;">
+                        Or Open Fast Web Converter ↗
+                    </a>
                 `;
-                createToast('Local Converter Server Offline', 'To download MP3s directly with 0 ads and 0 external APIs:', 'warning', extra);
-            } else {
-                updateButtonState('error', 'Failed');
-                const errMsg = (response && response.error) || 'Conversion failed.';
-                createToast('Conversion Alert', errMsg, 'error');
-                setTimeout(() => updateButtonState('default'), 4000);
+                toast.querySelector('.ytmp3-toast-content').appendChild(extra);
             }
         });
+    }
+
+    function updateButtonProgress(percent, text) {
+        const wrapper = document.getElementById('ytmp3-injected-container');
+        if (!wrapper) return;
+
+        const labelEl = wrapper.querySelector('.ytmp3-label');
+        const iconEl = wrapper.querySelector('.ytmp3-icon-wrap');
+        const progressBar = wrapper.querySelector('.ytmp3-btn-progress-bar');
+        const pillBtn = wrapper.querySelector('.ytmp3-pill-btn');
+
+        if (pillBtn) pillBtn.classList.add('is-active');
+        if (iconEl) iconEl.innerHTML = `<span class="ytmp3-spinner"></span>`;
+        if (labelEl) labelEl.textContent = text;
+        if (progressBar) progressBar.style.width = `${percent}%`;
+        wrapper.classList.remove('menu-open');
     }
 
     function updateButtonState(state, text = '') {
@@ -169,20 +215,23 @@
 
         const labelEl = wrapper.querySelector('.ytmp3-label');
         const iconEl = wrapper.querySelector('.ytmp3-icon-wrap');
+        const progressBar = wrapper.querySelector('.ytmp3-btn-progress-bar');
+        const pillBtn = wrapper.querySelector('.ytmp3-pill-btn');
 
-        if (state === 'loading') {
-            iconEl.innerHTML = `<span class="ytmp3-spinner"></span>`;
-            labelEl.textContent = text || 'Converting...';
-            wrapper.classList.remove('menu-open');
-        } else if (state === 'success') {
+        if (pillBtn) pillBtn.classList.remove('is-active');
+
+        if (state === 'success') {
             iconEl.innerHTML = CHECK_ICON;
             labelEl.textContent = text || 'Done!';
+            if (progressBar) progressBar.style.width = '100%';
         } else if (state === 'error') {
             iconEl.innerHTML = `⚠️`;
             labelEl.textContent = text || 'Failed';
+            if (progressBar) progressBar.style.width = '0%';
         } else {
             iconEl.innerHTML = MUSIC_ICON;
             labelEl.textContent = 'MP3';
+            if (progressBar) progressBar.style.width = '0%';
         }
     }
 
@@ -192,26 +241,34 @@
         const videoId = getVideoId();
         const existingBtn = document.getElementById('ytmp3-injected-container');
 
-        if (existingBtn && currentVideoId === videoId) {
+        // If button is already in document and properly attached, don't duplicate
+        if (existingBtn && document.body.contains(existingBtn) && currentVideoId === videoId) {
             return;
         }
 
-        if (existingBtn && currentVideoId !== videoId) {
+        if (existingBtn) {
             existingBtn.remove();
         }
 
         currentVideoId = videoId;
 
-        const targetContainer =
-            document.querySelector('#above-the-fold #top-level-buttons-computed') ||
+        // Find best insertion point in YouTube's modern action bar:
+        // Priority 1: Right next to the Like/Dislike segmented pill button!
+        const likeDislikePill = document.querySelector('segmented-like-dislike-button-view-model') ||
+            document.querySelector('#segmented-like-button') ||
+            document.querySelector('ytd-segmented-like-dislike-button-renderer');
+
+        const topLevelButtons = document.querySelector('#top-level-buttons-computed') ||
             document.querySelector('ytd-watch-metadata #actions #top-level-buttons-computed') ||
-            document.querySelector('#actions-inner #top-level-buttons-computed') ||
-            document.querySelector('#top-level-buttons-computed') ||
-            document.querySelector('ytd-watch-metadata #actions') ||
+            document.querySelector('ytd-menu-renderer[class*="ytd-watch-metadata"] #top-level-buttons-computed') ||
+            document.querySelector('#actions-inner #top-level-buttons-computed');
+
+        const fallbackActions = document.querySelector('ytd-watch-metadata #actions') ||
+            document.querySelector('#actions #actions-inner') ||
             document.querySelector('#owner');
 
-        if (!targetContainer) {
-            return;
+        if (!likeDislikePill && !topLevelButtons && !fallbackActions) {
+            return; // Action bar not yet rendered by YouTube
         }
 
         const wrapper = document.createElement('div');
@@ -219,7 +276,8 @@
         wrapper.className = 'ytmp3-wrapper';
 
         wrapper.innerHTML = `
-            <div class="ytmp3-pill-btn" title="Download YouTube audio as 320kbps MP3 (100% locally)">
+            <div class="ytmp3-pill-btn" title="Download YouTube audio as 320kbps MP3">
+                <div class="ytmp3-btn-progress-bar"></div>
                 <div class="ytmp3-action-trigger" id="ytmp3-btn-action">
                     <span class="ytmp3-icon-wrap">${MUSIC_ICON}</span>
                     <span class="ytmp3-label">MP3</span>
@@ -286,34 +344,49 @@
             }
         });
 
-        if (targetContainer.id === 'top-level-buttons-computed') {
-            targetContainer.insertBefore(wrapper, targetContainer.firstChild);
-        } else {
-            targetContainer.appendChild(wrapper);
+        // Insert immediately after the Like/Dislike button if available, or into topLevelButtons
+        if (likeDislikePill && likeDislikePill.parentNode) {
+            likeDislikePill.insertAdjacentElement('afterend', wrapper);
+        } else if (topLevelButtons) {
+            topLevelButtons.insertBefore(wrapper, topLevelButtons.firstChild);
+        } else if (fallbackActions) {
+            fallbackActions.appendChild(wrapper);
         }
 
-        console.log('[YT to MP3] Ready on video:', videoId);
+        console.log('[YT to MP3] Injected button under video:', videoId);
     }
 
+    // High frequency initialization and SPA persistence observer
     function initObserver() {
         injectButton();
 
+        // High frequency check during page load
+        for (let i = 1; i <= 15; i++) {
+            setTimeout(injectButton, i * 400);
+        }
+
         window.addEventListener('yt-navigate-finish', () => {
-            setTimeout(injectButton, 400);
-            setTimeout(injectButton, 1200);
+            for (let i = 1; i <= 10; i++) {
+                setTimeout(injectButton, i * 350);
+            }
         });
 
         window.addEventListener('yt-page-data-updated', () => {
-            setTimeout(injectButton, 300);
+            setTimeout(injectButton, 250);
+            setTimeout(injectButton, 800);
         });
 
         window.addEventListener('spfdone', () => {
-            setTimeout(injectButton, 500);
+            setTimeout(injectButton, 300);
         });
 
+        // Observe DOM changes on YouTube watch page
         const observer = new MutationObserver(() => {
-            if (isWatchPage() && !document.getElementById('ytmp3-injected-container')) {
-                injectButton();
+            if (isWatchPage()) {
+                const btn = document.getElementById('ytmp3-injected-container');
+                if (!btn || !document.body.contains(btn)) {
+                    injectButton();
+                }
             }
         });
 
@@ -322,11 +395,15 @@
             subtree: true
         });
 
+        // Safety interval ensuring button is ALWAYS present
         setInterval(() => {
-            if (isWatchPage() && !document.getElementById('ytmp3-injected-container')) {
-                injectButton();
+            if (isWatchPage()) {
+                const btn = document.getElementById('ytmp3-injected-container');
+                if (!btn || !document.body.contains(btn)) {
+                    injectButton();
+                }
             }
-        }, 2000);
+        }, 1000);
     }
 
     if (document.readyState === 'loading') {
