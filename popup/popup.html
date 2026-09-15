@@ -67,6 +67,20 @@
             </div>
         </div>
 
+        <!-- Cloud Server Settings (Work Not Local) -->
+        <div class="settings-section">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <label class="section-label" for="cloud-url-input" style="margin:0;">☁️ Cloud Server URL</label>
+                <span id="cloud-url-status" style="font-size:10px;color:#888;">Render / Koyeb</span>
+            </div>
+            <div style="display:flex;gap:6px;">
+                <input type="text" id="cloud-url-input" placeholder="https://your-app.onrender.com" 
+                    style="flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:8px 10px;color:#fff;font-size:12px;outline:none;" />
+                <button id="btn-save-cloud-url" style="background:#ff0033;color:#fff;border:none;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer;">Save</button>
+            </div>
+            <div style="font-size:11px;color:#888;margin-top:4px;">Paste your free cloud URL here to work without local server.</div>
+        </div>
+
         <!-- Companion Server Info Card -->
         <div class="info-card">
             <div class="info-header" id="toggle-companion-info">

@@ -4,7 +4,16 @@ const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
-const FFMPEG_PATH = require('@ffmpeg-installer/ffmpeg').path;
+let FFMPEG_PATH = null;
+try {
+    if (fs.existsSync('/usr/bin/ffmpeg')) {
+        FFMPEG_PATH = '/usr/bin/ffmpeg';
+    } else {
+        FFMPEG_PATH = require('@ffmpeg-installer/ffmpeg').path;
+    }
+} catch (e) {
+    FFMPEG_PATH = 'ffmpeg';
+}
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -98,7 +107,8 @@ app.get('/download', (req, res) => {
     }
 
     const startTime = Date.now();
-    const proc = spawn('python', args);
+    const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
+    const proc = spawn(pythonCmd, args);
 
     // Track percentage progress from stdout
     proc.stdout.on('data', (data) => {
@@ -199,10 +209,10 @@ app.get('/download', (req, res) => {
     });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
     console.log('===============================================================');
-    console.log('  🎵 YT to MP3 - Local 100% Self-Contained Server              ');
-    console.log(`  🚀 Status: Listening on http://localhost:${PORT}             `);
+    console.log('  🎵 YT to MP3 - Cloud & Local Conversion Server               ');
+    console.log(`  🚀 Status: Listening on port ${PORT}                         `);
     console.log('  ⚡ Zero External APIs · Real-Time Progress Tracker Active    ');
     console.log('===============================================================');
 });

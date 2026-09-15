@@ -16,24 +16,59 @@ document.addEventListener('DOMContentLoaded', () => {
     const historyList = document.getElementById('history-list');
     const btnClearHistory = document.getElementById('btn-clear-history');
 
+    const cloudUrlInput = document.getElementById('cloud-url-input');
+    const btnSaveCloudUrl = document.getElementById('btn-save-cloud-url');
+    const cloudUrlStatus = document.getElementById('cloud-url-status');
+
     let activeTabInfo = null;
 
-    // Check Companion Server Status
+    // Check Companion / Cloud Server Status
     function checkStatus() {
-        statusDot.className = 'status-dot';
+        statusDot.className = 'status-dot pulse';
         statusLabel.textContent = 'Checking Engine...';
-        statusDesc.textContent = 'Probing local conversion server';
+        statusDesc.textContent = 'Probing cloud and local servers...';
 
         chrome.runtime.sendMessage({ action: 'CHECK_SERVER_HEALTH' }, (response) => {
             if (response && response.isAlive) {
                 statusDot.className = 'status-dot active-local';
-                statusLabel.textContent = 'Local Engine: Online 🟢';
-                statusDesc.textContent = 'Zero external APIs · Direct 320kbps MP3';
+                if (response.mode === 'cloud') {
+                    statusLabel.textContent = 'Cloud Engine: Online 🟢';
+                    statusDesc.textContent = response.url.replace(/^https?:\/\//, '');
+                    if (cloudUrlStatus) cloudUrlStatus.textContent = 'Connected ✅';
+                } else {
+                    statusLabel.textContent = 'Local Engine: Online 🟢';
+                    statusDesc.textContent = 'localhost:4000 (320kbps Direct)';
+                }
             } else {
                 statusDot.className = 'status-dot';
-                statusLabel.textContent = 'Local Engine: Offline ⚠️';
-                statusDesc.textContent = 'Double-click start-server.bat to start';
+                statusLabel.textContent = 'Engine: Offline ⚠️';
+                if (response && response.hasCloudConfigured) {
+                    statusDesc.textContent = 'Cloud waking up... wait 30s or check URL';
+                    if (cloudUrlStatus) cloudUrlStatus.textContent = 'Unreachable';
+                } else {
+                    statusDesc.textContent = 'Start local server or enter Cloud URL below';
+                    if (cloudUrlStatus) cloudUrlStatus.textContent = 'Optional';
+                }
             }
+        });
+    }
+
+    // Load saved cloud URL
+    chrome.storage.local.get(['cloudServerUrl'], (res) => {
+        if (res && res.cloudServerUrl && cloudUrlInput) {
+            cloudUrlInput.value = res.cloudServerUrl;
+        }
+    });
+
+    // Save cloud URL
+    if (btnSaveCloudUrl) {
+        btnSaveCloudUrl.addEventListener('click', () => {
+            const val = (cloudUrlInput.value || '').trim();
+            chrome.storage.local.set({ cloudServerUrl: val }, () => {
+                btnSaveCloudUrl.textContent = 'Saved!';
+                setTimeout(() => { btnSaveCloudUrl.textContent = 'Save'; }, 1500);
+                checkStatus();
+            });
         });
     }
 
