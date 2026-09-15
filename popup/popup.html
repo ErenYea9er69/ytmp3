@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YT to MP3 Converter</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo-area">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+                    </svg>
+                </div>
+                <div class="logo-text">
+                    <h1>YT to MP3</h1>
+                    <span class="badge">v1.0</span>
+                </div>
+            </div>
+            <button id="btn-refresh-status" class="icon-btn" title="Refresh Engine Status">
+                <svg viewBox="0 0 24 24">
+                    <path d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+                </svg>
+            </button>
+        </header>
+
+        <!-- Engine Status Card -->
+        <div class="status-card" id="status-card">
+            <div class="status-indicator">
+                <span class="status-dot pulse" id="status-dot"></span>
+                <span class="status-label" id="status-label">Checking Engine...</span>
+            </div>
+            <div class="status-desc" id="status-desc">Auto-detecting fastest conversion route</div>
+        </div>
+
+        <!-- Active Video Card (If on YouTube) -->
+        <div class="current-video-card" id="current-video-card" style="display: none;">
+            <div class="video-info">
+                <div class="video-icon">🎬</div>
+                <div class="video-details">
+                    <div class="video-title" id="current-video-title">YouTube Video Detected</div>
+                    <div class="video-url" id="current-video-channel">Ready to convert</div>
+                </div>
+            </div>
+            <button class="primary-btn" id="btn-convert-current">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+                </svg>
+                <span>Download MP3 Now</span>
+            </button>
+        </div>
+
+        <!-- Settings Section -->
+        <div class="settings-section">
+            <label class="section-label" for="quality-select">Default Audio Bitrate</label>
+            <div class="select-wrapper">
+                <select id="quality-select">
+                    <option value="320">🎵 320 kbps (Ultra Studio Quality)</option>
+                    <option value="256">🎵 256 kbps (High Quality)</option>
+                    <option value="192">🎵 192 kbps (Standard Quality)</option>
+                    <option value="128">🎵 128 kbps (Fast & Compact)</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Companion Server Info Card -->
+        <div class="info-card">
+            <div class="info-header" id="toggle-companion-info">
+                <div class="info-title">
+                    <span>⚡ Local Companion Server</span>
+                    <span class="badge-sub">Optional</span>
+                </div>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="info-body" id="companion-info-body" style="display: none;">
+                <p>Run <strong>server/start-server.bat</strong> in the extension folder to enable 100% offline, private, ultra-fast 320kbps MP3 extraction with no third-party limits.</p>
+                <div class="port-tag">Port: 4000 (Auto-detected)</div>
+            </div>
+        </div>
+
+        <!-- History Section -->
+        <div class="history-section">
+            <div class="history-header">
+                <span class="section-label">Recent Downloads</span>
+                <button id="btn-clear-history" class="text-btn">Clear</button>
+            </div>
+            <div class="history-list" id="history-list">
+                <div class="empty-history">No recent conversions yet</div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <span>Direct YouTube Injected Button Active</span>
+        </footer>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>
